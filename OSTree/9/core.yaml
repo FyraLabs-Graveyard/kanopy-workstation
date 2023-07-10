@@ -1,0 +1,18 @@
+ref: kanopy/workstation/${basearch}
+repos:
+  - baseos
+  - appstream
+  - crb
+  - rpmfusion-free
+  - rpmfusion-nonfree
+  - hyperscale-main
+  - hyperscale-spin
+  - hyperscale-ex
+  - epel
+  
+include:
+  - ../Common/Enterprise/common.yaml
+  - ../Common/Enterprise/hardware.yaml
+  - ../Common/Enterprise/desktop.yaml
+  - ../Common/Enterprise/fonts.yaml
+  - apps.yaml
