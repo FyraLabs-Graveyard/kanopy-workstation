@@ -1,0 +1,77 @@
+name: Build ISOs
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  build-workstation-x86_64:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v3
+      - run: dnf install -y lorax wget rpm-ostree git hfsplus-tools
+      - run: ostree init --repo repo --mode archive
+      - run: ostree remote add --no-gpg-verify --repo repo tauOS https://repo.tauos.co/ostree tau/workstation/22/x86_64
+      - run: ostree pull --repo repo --mirror tauOS tau/workstation/22/x86_64
+      - run: |
+          lorax --product=Ultramarine Kanpoy \
+          --version=23 \
+          --release=1 \
+          --variant=workstation \
+          --source=http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/ \
+          --source=http://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/ \
+          --source=https://repo.tauos.co/releases/1.1/ \
+          --installpkgs=kanopy-logos \
+          --installpkgs=kanopy-release \
+          --installpkgs=kanopy-workstation-release \
+          --installpkgs=kanopy-repos \
+          --installpkgs=kanopy-gpg-keys \
+          --installpkgs=ultramarine-anaconda-profiles \
+          --installpkgs=kanopy-plymouth \
+          --volid=Kanopy-WS-Installer \
+          --nomacboot \
+          --skip-branding \
+          --add-template=$(pwd)/lorax-configure-repo.tmpl \
+          --add-template=$(pwd)/lorax-embed-repo.tmpl \
+          --add-template-var=ostree_install_repo=file://$(pwd)/repo \
+          --add-template-var=ostree_update_repo=https://repos.fyralabs.com/ostree/kanopy \
+          --add-template-var=ostree_osname=Kanopy \
+          --add-template-var=ostree_oskey=Kanopy-workstation \
+          --add-template-var=ostree_contenturl=https://repos.fyralabs.com/ostree/kanopy \
+          --add-template-var=ostree_install_ref=kanopy/workstation/x86_64 \
+          --add-template-var=ostree_update_ref=kanopy/workstation/x86_64 \
+          --logfile=$(pwd)/lorax.log \
+          --tmp=$(pwd)/tmp \
+          --rootfs-size=8 \
+          $(pwd)/home-x86_64
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3.0.0
+        with:
+          name: kanopy-workstation-x86_64.iso
+          path: kanopy-workstation-x86_64/images/dvd1.iso
+  publish:
+    if: ${{ always() }}
+    needs: [build-workstation-x86_64]
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+      options: --privileged
+    steps:
+    - uses: actions/checkout@v3
+    - name: Download Artifacts
+      uses: actions/download-artifact@v3.0.0
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        prerelease: true
+        name: "Kanopy Latest ISO - ${{ github.run_id }}"
+        tag_name:  ${{ github.run_id }}
+        files: |
+          workstation-x86_64.iso
+        

@@ -137,6 +137,7 @@ packages:
   - sl
   - kanopy-release
   - kanopy-workstation-release
+  - kanopy-logos
   - kanopy-repos
   - kanopy-repos-ostree
   - kanopy-gpg-keys
